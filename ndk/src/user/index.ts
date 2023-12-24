@@ -48,6 +48,7 @@ export class NDKUser {
     private _npub?: Npub;
     private _pubkey?: Hexpubkey;
     readonly relayUrls: string[] = [];
+    public profileEvent?: NDKEvent;
 
     public constructor(opts: NDKUserParams) {
         if (opts.npub) this._npub = opts.npub;
@@ -150,12 +151,13 @@ export class NDKUser {
         }
     }
 
+
     /**
      * Fetch a user's profile
      * @param opts {NDKSubscriptionOptions} A set of NDKSubscriptionOptions
      * @returns User Profile
      */
-    public async fetchProfile(opts?: NDKSubscriptionOptions): Promise<NDKUserProfile | null> {
+    public async fetchProfileEvent(opts?: NDKSubscriptionOptions): Promise<NDKEvent | null> {
         if (!this.ndk) throw new Error("NDK not set");
 
         if (!this.profile) this.profile = {};
@@ -220,8 +222,17 @@ export class NDKUser {
 
         if (sortedSetMetadataEvents.length === 0) return null;
 
-        // return the most recent profile
-        this.profile = profileFromEvent(sortedSetMetadataEvents[0]);
+        // returns the most recent profile
+        this.profileEvent = sortedSetMetadataEvents[0];
+        return sortedSetMetadataEvents[0];
+
+    }
+
+
+    public async fetchProfile(opts?: NDKSubscriptionOptions): Promise<NDKUserProfile | null> {
+        await this.fetchProfileEvent(opts);
+
+        this.profile = profileFromEvent(this.profileEvent);
 
         if (this.profile && this.ndk.cacheAdapter && this.ndk.cacheAdapter.saveProfile) {
             this.ndk.cacheAdapter.saveProfile(this.pubkey, this.profile);
